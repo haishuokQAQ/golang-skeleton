@@ -1,0 +1,14 @@
+package dal
+{{ if .Imports }}
+import (
+{{- range .Imports}}
+	"{{.}}"
+{{- end}}
+)
+{{end}}
+
+{{$structName := CamelizeStr .GoType true}}
+
+type {{$structName}} struct {
+
+}

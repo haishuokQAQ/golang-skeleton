@@ -1,0 +1,51 @@
+package dal
+
+import (
+     "github.com/jinzhu/gorm"
+{{- range .Imports}}
+    {{.}}
+{{- end}}
+)
+
+var StdDBAccess *DBAccess
+
+type DBAccess struct {
+    DB *gorm.DB
+{{- range .DalObjects}}
+    {{CamelizeStr .Name true}} {{.GoType}} {{.Tag}}
+{{- end}}
+}
+
+func (da *DBAccess) DB() *gorm.DB {
+	return da.db
+}
+
+func (da *DBAccess) BeginTransaction() *gorm.DB {
+	return da.db.Begin()
+}
+
+// ConnectDB is used to open database connection
+func ConnectDB(ip string, port int, username string, password string, dbname string) error {
+
+	if StdDBAccess != nil {
+		StdDBAccess.db.Close()
+	}
+
+	dsn := fmt.Sprintf("host=%s port=%v user=%s dbname=%s password=%s sslmode=disable binary_parameters=yes", ip, port, username, dbname, password)
+
+	db, err := gorm.Open("postgres", dsn)
+	if err != nil {
+		return err
+	}
+	db.SingularTable(true)
+	db.LogMode(false)
+	db = db.Set("gorm:save_associations", false).Set("gorm:association_save_reference", false)
+	db.DB().SetConnMaxLifetime(1 * time.Hour)
+	StdDBAccess = &DBAccess{
+		db:                       db,
+		{{- range .DalObjects}}
+            {{CamelizeStr .Name true}} &{{.GoType}}
+        {{- end}}
+	}
+	return nil
+}
